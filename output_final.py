@@ -28,6 +28,10 @@ import random
 import pytesseract
 from pdf2image import convert_from_path
 import os
+from deep_translator import GoogleTranslator
+from pymongo import MongoClient
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # ========== Initialisation ==========
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -195,10 +199,61 @@ def predict(filepath):
     else:
         for index, row in predicted_as_experience.iterrows():
             print(f"- {row['experiences']}")
-
     return [s for s, pred in zip(sentences, predictions) if pred == 1]
 
-# ========== Exemple d'utilisation ==========
+def translate_to_french(text_list):
+    return [GoogleTranslator(source='auto', target='fr').translate(text) for text in text_list]
+
+def translate_experiences_to_french(text_list):
+    return [GoogleTranslator(source='auto', target='fr').translate(text) for text in text_list]
+
+def offre_to_text(offre):
+    fields = [
+        offre.get("titre", ""),
+        offre.get("soustitre", ""),
+        offre.get("description", ""),
+        offre.get("responsabilites", ""),
+        offre.get("competenceRequises", ""),
+        offre.get("qualificationRequises", "")
+    ]
+    return " ".join(fields)
+
+def compute_similarity(cv_text, offre_text):
+    vectorizer = TfidfVectorizer()
+    tfidf = vectorizer.fit_transform([cv_text, offre_text])
+    sim = cosine_similarity(tfidf[0:1], tfidf[1:2])
+    return float(sim[0][0])
+
+def extract_skills_from_offre(offre):
+    comp = offre.get('competenceRequises', '')
+    skills = re.split(r'[;,\n]', comp)
+    return set(s.strip().lower() for s in skills if s.strip())
+
+def extract_languages_from_offre(offre):
+    return set(l.lower().split(' ')[0] for l in offre.get('langue', []) if isinstance(l, str))
+
+def normalize_langs(lang_list):
+    return set(l.lower().split(' ')[0] for l in lang_list if isinstance(l, str))
+
+def compute_global_score(cv_text, offre_text, cv_skills, offre_skills, cv_languages, offre_languages, has_experience, w_text=0.3, w_skills=0.3, w_langs=0.1, w_exp=0.1):
+    text_score = compute_similarity(cv_text, offre_text)
+    if cv_skills:
+        skills_score = len(cv_skills & offre_skills) / len(cv_skills)
+    else:
+        skills_score = 0
+    if cv_languages:
+        langs_score = len(cv_languages & offre_languages) / len(cv_languages)
+    else:
+        langs_score = 0
+    exp_score = 1 if has_experience else 0
+    global_score = w_text * text_score + w_skills * skills_score + w_langs * langs_score + w_exp * exp_score
+    return global_score, text_score, skills_score, langs_score, exp_score
+
+def format_years_months(years_float):
+    years = int(years_float)
+    months = int(round((years_float - years) * 12))
+    return f"{years} an{'s' if years > 1 else ''} {months} mois"
+
 if __name__ == "__main__":
     RESUME_PATH = r"C:\Users\khmir\Downloads\khmiri_iheb_tun_eng.pdf"
     txt_path = extract_text_from_pdf(RESUME_PATH)
@@ -210,5 +265,48 @@ if __name__ == "__main__":
 
     print("\n========== Résultats de l'analyse du CV ==========")
     print("Compétences détectées:", ", ".join(skills))
-    print(f"\nDurée totale d'expérience estimée: {duration} ans")
+    print(f"\nDurée totale d'expérience estimée: {format_years_months(duration)}")
     print("\nPays détectés:", ", ".join(countries) if countries else "Aucun")
+
+    cv_langues = ["Français (C1)", "Anglais (B2)"]
+
+    if experiences:
+        experiences_fr = translate_experiences_to_french(experiences)
+    else:
+        print("\nAucune phrase d'expérience identifiée.")
+        experiences_fr = []
+
+    MONGO_URI = "mongodb+srv://iheb:Kt7oZ4zOW4Fg554q@cluster0.5zmaqup.mongodb.net/"
+    client = MongoClient(MONGO_URI)
+    db = client["PowerBi"]
+    collection = db["offredemplois"]
+    offres = list(collection.find({"status": "active"}))
+    seuil = 0.26  
+    matches = []
+    if experiences_fr and offres:
+        cv_text = " ".join(experiences_fr)
+        cv_skills = set(s.lower() for s in skills)
+        cv_languages = normalize_langs(cv_langues)
+        has_experience = len(experiences_fr) > 0
+        for offre in offres:
+            offre_text = offre_to_text(offre)
+            offre_skills = extract_skills_from_offre(offre)
+            offre_languages = extract_languages_from_offre(offre)
+            global_score, text_score, skills_score, langs_score, exp_score = compute_global_score(
+                cv_text, offre_text, cv_skills, offre_skills, cv_languages, offre_languages, has_experience
+            )
+            matching_skills = cv_skills & offre_skills
+            matching_languages = cv_languages & offre_languages
+            if global_score >= seuil:
+                matches.append((offre, global_score, matching_skills, matching_languages, text_score, skills_score, langs_score, exp_score))
+        if matches:
+            print(f"\nOffres d'emploi correspondant au CV (score global >= {seuil}):")
+            for offre, global_score, matching_skills, matching_languages, text_score, skills_score, langs_score, exp_score in sorted(matches, key=lambda x: x[1], reverse=True):
+                print(f"- {offre.get('titre', 'Sans titre')} | Société: {offre.get('societe', 'N/A')} | Ville: {offre.get('ville', 'N/A')} | Score global: {global_score:.2f}")
+                print(f"  Compétences communes: {', '.join(matching_skills) if matching_skills else 'Aucune'}")
+                print(f"  Langues communes: {', '.join(matching_languages) if matching_languages else 'Aucune'}")
+                print(f"  Détail: Texte: {text_score:.2f}, Compétences: {skills_score:.2f}, Langues: {langs_score:.2f}, Expérience: {exp_score}")
+        else:
+            print("\nAucune offre d'emploi ne correspond suffisamment au CV.")
+    elif not offres:
+        print("\nAucune offre d'emploi trouvée dans la base de données.") 
