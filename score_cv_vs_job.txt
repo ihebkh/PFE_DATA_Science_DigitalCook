@@ -1,0 +1,10 @@
+Offre: Développeur Python
+Score global: 0.223
+Détail: texte=0.043, compétences=0.032, langues=1.000, expérience=1.000
+
+Offre: Ingénieur DevOps
+Score global: 0.216
+Détail: texte=0.020, compétences=0.032, langues=1.000, expérience=1.000
+
+Offre matcher: Développeur Python
+Score: 0.223
