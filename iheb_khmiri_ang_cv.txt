@@ -1,0 +1,81 @@
+Khmiri [heb
+
+U_ Software Engineer
+
+9 Rades, Tunisia © khmiriiheb3@gmail.com \ +216 29 118 233 in khmiri iheb
+
+Professional Experience
+
+Final-Year Project Tunisia
+DigitalCook Tunisia February 2025 — August 2025
+o Gathered requirements and designed system architecture.
+o Developed data integration and ETL processes.
+o Designed and tested interactive dashboards.
+o Built an intelligent system to extract key information from CVs and automatically recommend relevant job
+offers.
+o Evaluated and audited results; deployed the dashboard on a website.
+Technologies: Python, NLP, Airflow, Microsoft Power BI, MongoDB, PostgreSQL, Docker, FastAPI, Re-
+act.js, Machine Learning
+
+Data Engineer Intern Tunisia
+Swiss Premium Negoce SA June 2024 — August 2024
+o Analyzed business requirements and designed system components.
+
+°
+
+Developed data integration and ETL workflows.
+
+°
+
+Designed and validated dashboards.
+
+°
+
+Integrated Machine Learning algorithms.
+Technologies: Python, EDA, Airflow, MongoDB, PostgreSQL, Docker, Microsoft Power BI, Next.js,
+FastAPI, Machine Learning
+
+Data Analyst Intern Tunisia
+Swiss Premium Negoce SA January 2024 — June 2024
+o Collected and explored data via web scraping.
+
+°
+
+Developed data integration and ETL processes.
+
+°
+
+Designed and tested dashboards.
+
+°
+
+Integrated Machine Learning algorithms.
+Evaluated and audited results; deployed the dashboard on a website.
+Technologies: Python, EDA, Mysql, Talend, Microsoft Power BI, Machine Learning, Angular, Django
+
+°
+
+Education
+ESPRIT — Private Higher School of Engineering and Technology Tunisia
+Engineering Degree in Computer Science — ERP/BI 2020 — 2025
+Lycée Farhat Hached, Rades Tunisia
+Baccalaureate in Computer Science 2019 — 2020
+Skills
+
+Database Administration: Oracle, MySQL, SQL Server (SSMS), PostgreSQL, MongoDB
+
+Web Frameworks: Symfony, Spring Boot, .NET, Django, FastAPI, React.js, Next.js, Node.js, Express.js,
+Angular
+
+DevOps Tools: Docker, Jenkins, JUnit, Mockito, Grafana, Nexus, Prometheus, SonarQube
+
+Data Tools: Microsoft Power BI, Talend, SSIS, SSAS, Airflow, Kafka
+
+CRM/ERP: Microsoft Dynamics 365, Microsoft power platform , sap 4/hana , sap abap , sap fiori
+
+AI & Machine Learning: Machine Learning, NLP, Big Data
+
+Languages
+
+English: B2 — French: B2 — Arabic: Native
+

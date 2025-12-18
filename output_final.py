@@ -40,7 +40,7 @@ gc = geonamescache.GeonamesCache()
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # === Base de compétences
-SKILL_DB_PATH = r"C:\Users\khmir\Desktop\data-science\skill_db_relax_20.json"
+SKILL_DB_PATH = r"C:\Users\khmir\Desktop\PFE_DATA_Science_DigitalCook\skill_db_relax_20.json"
 with open(SKILL_DB_PATH, 'r', encoding='utf-8') as f:
     SKILL_DB = json.load(f)
 
@@ -229,25 +229,15 @@ def extract_skills_from_offre(offre):
     skills = re.split(r'[;,\n]', comp)
     return set(s.strip().lower() for s in skills if s.strip())
 
-def extract_languages_from_offre(offre):
-    return set(l.lower().split(' ')[0] for l in offre.get('langue', []) if isinstance(l, str))
-
-def normalize_langs(lang_list):
-    return set(l.lower().split(' ')[0] for l in lang_list if isinstance(l, str))
-
-def compute_global_score(cv_text, offre_text, cv_skills, offre_skills, cv_languages, offre_languages, has_experience, w_text=0.3, w_skills=0.3, w_langs=0.1, w_exp=0.1):
+def compute_global_score(cv_text, offre_text, cv_skills, offre_skills, has_experience, w_text=0.4, w_skills=0.4, w_exp=0.2):
     text_score = compute_similarity(cv_text, offre_text)
     if cv_skills:
         skills_score = len(cv_skills & offre_skills) / len(cv_skills)
     else:
         skills_score = 0
-    if cv_languages:
-        langs_score = len(cv_languages & offre_languages) / len(cv_languages)
-    else:
-        langs_score = 0
     exp_score = 1 if has_experience else 0
-    global_score = w_text * text_score + w_skills * skills_score + w_langs * langs_score + w_exp * exp_score
-    return global_score, text_score, skills_score, langs_score, exp_score
+    global_score = w_text * text_score + w_skills * skills_score + w_exp * exp_score
+    return global_score, text_score, skills_score, exp_score
 
 def format_years_months(years_float):
     years = int(years_float)
@@ -255,7 +245,7 @@ def format_years_months(years_float):
     return f"{years} an{'s' if years > 1 else ''} {months} mois"
 
 if __name__ == "__main__":
-    RESUME_PATH = r"C:\Users\khmir\Downloads\khmiri_iheb_tun_eng.pdf"
+    RESUME_PATH = r"C:\Users\khmir\Desktop\PFE_DATA_Science_DigitalCook\iheb_khmiri_ang_cv.pdf"
     txt_path = extract_text_from_pdf(RESUME_PATH)
 
     skills = detectSkills(skill_extractor, txt_path)
@@ -267,8 +257,6 @@ if __name__ == "__main__":
     print("Compétences détectées:", ", ".join(skills))
     print(f"\nDurée totale d'expérience estimée: {format_years_months(duration)}")
     print("\nPays détectés:", ", ".join(countries) if countries else "Aucun")
-
-    cv_langues = ["Français (C1)", "Anglais (B2)"]
 
     if experiences:
         experiences_fr = translate_experiences_to_french(experiences)
@@ -286,27 +274,23 @@ if __name__ == "__main__":
     if experiences_fr and offres:
         cv_text = " ".join(experiences_fr)
         cv_skills = set(s.lower() for s in skills)
-        cv_languages = normalize_langs(cv_langues)
         has_experience = len(experiences_fr) > 0
         for offre in offres:
             offre_text = offre_to_text(offre)
             offre_skills = extract_skills_from_offre(offre)
-            offre_languages = extract_languages_from_offre(offre)
-            global_score, text_score, skills_score, langs_score, exp_score = compute_global_score(
-                cv_text, offre_text, cv_skills, offre_skills, cv_languages, offre_languages, has_experience
+            global_score, text_score, skills_score, exp_score = compute_global_score(
+                cv_text, offre_text, cv_skills, offre_skills, has_experience
             )
             matching_skills = cv_skills & offre_skills
-            matching_languages = cv_languages & offre_languages
             if global_score >= seuil:
-                matches.append((offre, global_score, matching_skills, matching_languages, text_score, skills_score, langs_score, exp_score))
+                matches.append((offre, global_score, matching_skills, text_score, skills_score, exp_score))
         if matches:
             print(f"\nOffres d'emploi correspondant au CV (score global >= {seuil}):")
-            for offre, global_score, matching_skills, matching_languages, text_score, skills_score, langs_score, exp_score in sorted(matches, key=lambda x: x[1], reverse=True):
+            for offre, global_score, matching_skills, text_score, skills_score, exp_score in sorted(matches, key=lambda x: x[1], reverse=True):
                 print(f"- {offre.get('titre', 'Sans titre')} | Société: {offre.get('societe', 'N/A')} | Ville: {offre.get('ville', 'N/A')} | Score global: {global_score:.2f}")
                 print(f"  Compétences communes: {', '.join(matching_skills) if matching_skills else 'Aucune'}")
-                print(f"  Langues communes: {', '.join(matching_languages) if matching_languages else 'Aucune'}")
-                print(f"  Détail: Texte: {text_score:.2f}, Compétences: {skills_score:.2f}, Langues: {langs_score:.2f}, Expérience: {exp_score}")
+                print(f"  Détail: Texte: {text_score:.2f}, Compétences: {skills_score:.2f}, Expérience: {exp_score}")
         else:
             print("\nAucune offre d'emploi ne correspond suffisamment au CV.")
     elif not offres:
-        print("\nAucune offre d'emploi trouvée dans la base de données.") 
+        print("\nAucune offre d'emploi trouvée dans la base de données.")
